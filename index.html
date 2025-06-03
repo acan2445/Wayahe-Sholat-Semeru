@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Waktu Sholat di Puncak Gunung Semeru</title>
+  <style>
+    /* Video background */
+    #bgVideo {
+      position: fixed;
+      top: 0;
+      left: 0;
+      min-width: 100%;
+      min-height: 100%;
+      z-index: -1;
+      object-fit: cover;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: transparent;
+      color: #2c3e50;
+    }
+
+    /* Container supaya konten gak nempel ke tepi */
+    .container {
+      position: relative;
+      z-index: 1;
+      padding: 30px;
+      background: rgba(240, 244, 248, 0.8); /* semi transparan biar teks jelas */
+      max-width: 700px;
+      margin: 50px auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    label, input, button {
+      display: block;
+      margin: 10px auto;
+      text-align: center;
+    }
+
+    input[type="date"] {
+      padding: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 8px 20px;
+      background: #2ecc71;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background: #27ae60;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin: 20px auto 0;
+      width: 60%;
+      background: white;
+      border-radius: 5px;
+      overflow: hidden;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #3498db;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Video background -->
+  <video autoplay muted loop id="bgVideo">
+    <source src="bgvideo.mp4" type="video/mp4" />
+    Browser Anda tidak mendukung video latar belakang.
+  </video>
+
+  <div class="container">
+    <h1>Waktu Sholat di Puncak Gunung Semeru</h1>
+
+    <label for="tanggal">Pilih Tanggal:</label>
+    <input type="date" id="tanggal" />
+
+    <button onclick="hitungWaktu()">Tampilkan Waktu Sholat</button>
+
+    <table id="hasilTabel" style="display:none;">
+      <thead>
+        <tr>
+          <th>Sholat</th>
+          <th>Waktu</th>
+        </tr>
+      </thead>
+      <tbody id="tabelIsi"></tbody>
+    </table>
+  </div>
+
+  <script>
+    function deg2rad(deg) {
+      return deg * Math.PI / 180;
+    }
+
+    function rad2deg(rad) {
+      return rad * 180 / Math.PI;
+    }
+
+    function dayOfYear(date) {
+      const start = new Date(date.getFullYear(), 0, 0);
+      const diff = date - start;
+      const oneDay = 1000 * 60 * 60 * 24;
+      return Math.floor(diff / oneDay);
+    }
+
+    function declination(doy) {
+      return 23.44 * Math.sin(deg2rad((360 / 365) * (doy - 81)));
+    }
+
+    function formatTime(time) {
+      let jam = Math.floor(time);
+      let menit = Math.floor((time - jam) * 60);
+      if (jam >= 24) jam -= 24;
+      return `${pad(jam)}:${pad(menit)}`;
+    }
+
+    function pad(num) {
+      return num.toString().padStart(2, '0');
+    }
+
+    function hourAngle(altitudeDeg, latRad, decRad) {
+      return Math.acos(
+        (Math.sin(deg2rad(altitudeDeg)) - Math.sin(latRad) * Math.sin(decRad)) /
+        (Math.cos(latRad) * Math.cos(decRad))
+      );
+    }
+
+    function koreksiWaktuElevasi(elevasiMeter) {
+      const R = 6371000;
+      const sudut = Math.acos(R / (R + elevasiMeter));
+      return rad2deg(sudut) / 15;
+    }
+
+    function hourAngleAshar(latDeg, decDeg) {
+      const latRad = deg2rad(latDeg);
+      const decRad = deg2rad(decDeg);
+      const abscot = Math.abs(latDeg - decDeg);
+      const cotanH = Math.tan(deg2rad(abscot)) + 1;
+      const h = Math.atan(1 / cotanH);
+      const costAsar = (-Math.tan(latRad) * Math.tan(decRad) + (Math.sin(h) / (Math.cos(latRad) * Math.cos(decRad))));
+      return Math.acos(costAsar);
+    }
+
+    function waktuSholat(date) {
+      const latDeg = -8.1085;
+      const lat = deg2rad(latDeg);
+      const lon = 112.9229;
+      const timezone = 7;
+      const elevasi = 3676;
+
+      const doy = dayOfYear(date);
+      const decDeg = declination(doy);
+      const dec = deg2rad(decDeg);
+
+      const D = 12 + timezone - (lon / 15);
+
+      const haSubuh = hourAngle(-21, lat, dec);
+      const haIsya = hourAngle(-19, lat, dec);
+      const haMagrib = hourAngle(-3, lat, dec);
+      const haAsar = hourAngleAshar(latDeg, decDeg);
+
+      const koreksiElev = koreksiWaktuElevasi(elevasi);
+
+      return {
+        subuh: formatTime(D - rad2deg(haSubuh) / 15 - koreksiElev),
+        zuhur: formatTime(D),
+        asar: formatTime(D + rad2deg(haAsar) / 15),
+        magrib: formatTime(D + rad2deg(haMagrib) / 15),
+        isya: formatTime(D + rad2deg(haIsya) / 15 + koreksiElev)
+      };
+    }
+
+    function hitungWaktu() {
+      const input = document.getElementById("tanggal").value;
+      if (!input) {
+        alert("Harap pilih tanggal terlebih dahulu.");
+        return;
+      }
+
+      const date = new Date(input);
+      const waktu = waktuSholat(date);
+
+      const isi = document.getElementById("tabelIsi");
+      isi.innerHTML = `
+        <tr><td>Subuh</td><td>${waktu.subuh}</td></tr>
+        <tr><td>Zuhur</td><td>${waktu.zuhur}</td></tr>
+        <tr><td>Asar</td><td>${waktu.asar}</td></tr>
+        <tr><td>Magrib</td><td>${waktu.magrib}</td></tr>
+        <tr><td>Isya</td><td>${waktu.isya}</td></tr>
+      `;
+
+      document.getElementById("hasilTabel").style.display = "table";
+    }
+  </script>
+</body>
+</html>
