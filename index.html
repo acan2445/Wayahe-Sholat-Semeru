@@ -32,17 +32,23 @@
       margin: 50px auto;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      text-align: center;
     }
 
     h1 {
-      text-align: center;
       margin-bottom: 20px;
     }
 
-    label, input, button {
-      display: block;
-      margin: 10px auto;
-      text-align: center;
+    .form-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .form-center > * {
+      margin: 10px 0;
     }
 
     input[type="date"] {
@@ -84,6 +90,16 @@
       background-color: #3498db;
       color: white;
     }
+
+    @media (max-width: 600px) {
+      .container {
+        width: 90%;
+        padding: 20px;
+      }
+      table {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -97,10 +113,11 @@
   <div class="container">
     <h1>Waktu Sholat di Puncak Gunung Semeru</h1>
 
-    <label for="tanggal">Pilih Tanggal:</label>
-    <input type="date" id="tanggal" />
-
-    <button onclick="hitungWaktu()">Tampilkan Waktu Sholat</button>
+    <div class="form-center">
+      <label for="tanggal">Pilih Tanggal:</label>
+      <input type="date" id="tanggal" />
+      <button onclick="hitungWaktu()">Tampilkan Waktu Sholat</button>
+    </div>
 
     <table id="hasilTabel" style="display:none;">
       <thead>
